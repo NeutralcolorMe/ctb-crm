@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>CTB Lead CRM</title>
+<style>
+  :root{color-scheme:light;--bg:#fff;--card:#fff;--line:#e6e8ee;--txt:#1c2230;
+        --mut:#697086;--accent:#2563eb;--ok:#16a34a;--warn:#b7791f;--bad:#dc2626;--soft:#f6f7fb;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt);padding:16px}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:var(--mut);font-size:12.5px;margin-bottom:14px}
+  .cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .kpi{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:100px;flex:1}
+  .kpi .n{font-size:24px;font-weight:700}
+  .kpi .l{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+  button{border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--line)}
+  .btn-primary{background:var(--accent);border:none;color:#fff}.btn-ghost{background:#fff;color:var(--txt)}
+  button:disabled{opacity:.6;cursor:default}
+  input,select{background:#fff;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 10px;font-size:14px}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:10px 12px;text-align:left;font-size:13px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;background:var(--soft)}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+  .b-you{background:#fdecec;color:var(--bad)}.b-them{background:#fbf1dc;color:var(--warn)}.b-partner{background:#eef0f4;color:var(--mut)}
+  .s-New{background:#e8effe;color:var(--accent)}.s-Replied{background:#e7f6ed;color:var(--ok)}
+  .s-Awaiting{background:#fbf1dc;color:var(--warn)}.s-With{background:#eef0f4;color:var(--mut)}
+  .s-Elsewhere{background:#efe8fe;color:#6d28d9}.s-Closed{background:#eef0f4;color:var(--mut)}
+  .v-99co{background:#e8f0fe;color:#1a73e8}.v-ProjectSG{background:#fdeede;color:#c2410c}.v-{background:#eef0f4;color:var(--mut)}
+  .due{color:var(--bad);font-weight:700}.kw{color:var(--mut);font-size:11px}.name{font-weight:600}
+  .msg{color:var(--mut);max-width:300px}.foot{color:var(--mut);font-size:12px;margin-top:12px}
+  .overdue-row td{background:#fff6f6}
+  select.assign{padding:4px 6px;font-size:12px}
+  a{color:var(--accent)}
+  #app{display:none}
+  /* lock screen */
+  #lock{max-width:340px;margin:18vh auto 0;text-align:center}
+  #lock h1{font-size:21px;margin-bottom:4px}
+  #lock .sub{margin-bottom:20px}
+  #pin{width:100%;font-size:20px;text-align:center;letter-spacing:.3em;padding:12px;margin-bottom:10px}
+  #unlock{width:100%;padding:12px;font-size:15px}
+  #lockerr{color:var(--bad);font-size:13px;min-height:18px;margin-top:10px}
+  .remember{display:flex;gap:8px;justify-content:center;align-items:center;color:var(--mut);font-size:13px;margin-top:12px}
+  /* phone layout: table becomes cards */
+  @media (max-width:719px){
+    body{padding:12px}
+    table,tbody{display:block;border:none}
+    thead{display:none}
+    tr{display:block;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:12px;background:var(--card)}
+    .overdue-row{background:#fff6f6}
+    td{display:block;border:none;padding:2px 0;font-size:13px;background:none!important}
+    td.rowhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}
+    td .name{font-size:15px}
+    .pillrow{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+    .msg{max-width:none}
+    .desktop-only{display:none!important}
+  }
+  @media (min-width:720px){ .mobile-only{display:none!important} }
+</style></head>
+<body>
+  <div id="lock">
+    <h1>CTB Lead CRM</h1>
+    <div class="sub">Enter PIN to unlock</div>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="••••••">
+    <button id="unlock" class="btn-primary">Unlock</button>
+    <div class="remember"><input type="checkbox" id="remember" checked><label for="remember">Remember this device</label></div>
+    <div id="lockerr"></div>
+  </div>
+
+  <div id="app">
+  <h1>CTB WhatsApp Lead CRM</h1>
+  <div class="sub" id="sub"></div>
+  <div class="cards" id="kpis"></div>
+  <div class="toolbar">
+    <input id="search" placeholder="Search name, phone, project…" style="flex:1;min-width:160px">
+    <select id="fball">
+      <option value="">Ball with anyone</option>
+      <option value="you">Your move</option>
+      <option value="them">Waiting on them</option>
+      <option value="partner">With partner</option>
+    </select>
+    <select id="fvendor"><option value="">All vendors</option></select>
+    <select id="fstatus"><option value="">All statuses</option></select>
+    <button id="lockbtn" class="btn-ghost">Lock</button>
+  </div>
+  <table id="tbl"><thead><tr>
+    <th data-k="name">Lead</th><th data-k="project">Project</th><th data-k="vendor">Vendor</th>
+    <th data-k="assign">Handled by</th><th data-k="status">Status</th>
+    <th data-k="ball">Ball with</th><th data-k="waitDays">Waiting</th>
+    <th data-k="lastAct">Last activity</th><th data-k="notes">Notes</th>
+  </tr></thead><tbody id="rows"></tbody></table>
+  <div class="foot" id="foot"></div>
+  </div>
+
+<script>
+const ENC = "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"; // base64: salt(16) | iv(12) | ciphertext+tag
+const PBKDF2_ITERS = 310000;
+const b64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+const toB64 = u8 => btoa(String.fromCharCode(...u8));
+
+async function deriveKey(pin, salt){
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:PBKDF2_ITERS, hash:'SHA-256'},
+    km, {name:'AES-GCM', length:256}, true, ['decrypt']);
+}
+async function tryDecrypt(key){
+  const raw = b64(ENC), iv = raw.slice(16,28), ct = raw.slice(28);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct);
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+async function unlockWithPin(pin, remember){
+  const raw = b64(ENC), salt = raw.slice(0,16);
+  const key = await deriveKey(pin, salt);
+  const data = await tryDecrypt(key); // throws on wrong PIN
+  if(remember){
+    const jwk = await crypto.subtle.exportKey('jwk', key);
+    localStorage.setItem('ctb_key', JSON.stringify(jwk));
+  }
+  return data;
+}
+async function unlockWithSavedKey(){
+  const jwkStr = localStorage.getItem('ctb_key');
+  if(!jwkStr) return null;
+  try{
+    const key = await crypto.subtle.importKey('jwk', JSON.parse(jwkStr), {name:'AES-GCM'}, false, ['decrypt']);
+    return await tryDecrypt(key);
+  }catch(e){ localStorage.removeItem('ctb_key'); return null; }
+}
+function boot(data){
+  document.getElementById('lock').style.display='none';
+  document.getElementById('app').style.display='block';
+  initApp(data);
+}
+document.getElementById('unlock').onclick = async () => {
+  const btn=document.getElementById('unlock'), err=document.getElementById('lockerr');
+  btn.disabled=true; err.textContent='';
+  try{
+    const data = await unlockWithPin(document.getElementById('pin').value.trim(),
+      document.getElementById('remember').checked);
+    boot(data);
+  }catch(e){ err.textContent='Wrong PIN.'; btn.disabled=false; }
+};
+document.getElementById('pin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('unlock').click(); });
+unlockWithSavedKey().then(d=>{ if(d) boot(d); });
+
+function initApp(DATA){
+document.getElementById('lockbtn').onclick=()=>{ localStorage.removeItem('ctb_key'); location.reload(); };
+const DUE=(DATA.meta&&DATA.meta.replyDueDays)||2, COLD=(DATA.meta&&DATA.meta.coldDays)||14;
+let now=new Date(); const dayMs=86400000;
+const daysSince=iso=>{if(!iso)return null;const d=Math.floor((now-new Date(iso))/dayMs);return d<0?0:d;};
+const fmt=iso=>{if(!iso)return"—";const d=new Date(iso);
+  return d.toLocaleDateString(undefined,{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});};
+const vcls=v=>'v-'+(v||'').replace(/[^A-Za-z0-9]/g,'');
+let ASSIGN={}; try{ASSIGN=JSON.parse(localStorage.getItem('ctb_assign')||'{}');}catch(e){}
+
+function derive(l){
+  const assignedTo = ASSIGN[l.id] || l.assignedTo || 'me';
+  const leadReplied = !!l.lastLeadReplyAt;
+  let status;
+  if(l.status==='Replied elsewhere') status='Replied elsewhere';
+  else if(l.status==='Closed') status='Closed';
+  else if(assignedTo==='partner' && !leadReplied) status='With partner';
+  else if(!l.contacted) status='New';
+  else if(leadReplied) status='Replied';
+  else status='Awaiting reply';
+  let ball;
+  if(assignedTo==='partner' && !leadReplied) ball='partner';
+  else if(!l.contacted) ball='you';
+  else if(leadReplied) ball = l.lastSpeaker==='me' ? 'them' : 'you';
+  else ball='them';
+  let waitDays, waitLabel, lastAct;
+  if(leadReplied){waitDays=daysSince(l.lastLeadReplyAt);waitLabel='since they replied';lastAct='they replied '+fmt(l.lastLeadReplyAt);}
+  else if(l.contacted){waitDays=daysSince(l.lastMyMessageAt);waitLabel='no reply yet';lastAct=(assignedTo==='partner'?'partner sent ':'you sent ')+fmt(l.lastMyMessageAt);}
+  else {waitDays=daysSince(l.enquiryAt);waitLabel='not contacted';lastAct='enquiry '+fmt(l.enquiryAt);}
+  const overdue = ball!=='partner' && waitDays!==null && waitDays>=DUE;
+  return {...l,assignedTo,leadReplied,status,ball,waitDays,waitLabel,lastAct,overdue};
+}
+function rows(){return DATA.leads.map(derive);}
+function paintKpis(R){
+  const k={total:R.length,yourmove:R.filter(l=>l.ball==='you').length,
+    overdue:R.filter(l=>l.overdue).length,partner:R.filter(l=>l.ball==='partner').length};
+  document.getElementById('kpis').innerHTML=[['Total leads',k.total],['Your move',k.yourmove],
+    ['Overdue ('+DUE+'d+)',k.overdue],['With partner',k.partner]]
+    .map(([l,n])=>`<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+}
+document.getElementById('sub').textContent='Reply status read from each lead’s own chat · vendors: '+
+  ((DATA.meta.vendors||[]).join(', '))+' · last scan: '+(DATA.meta.lastScan?fmt(DATA.meta.lastScan):'never');
+const vendors=[...new Set(DATA.leads.map(l=>l.vendor).filter(Boolean))];
+document.getElementById('fvendor').insertAdjacentHTML('beforeend',vendors.map(v=>`<option>${v}</option>`).join(''));
+const allStatuses=['New','Awaiting reply','Replied','With partner','Replied elsewhere','Closed'];
+document.getElementById('fstatus').insertAdjacentHTML('beforeend',allStatuses.map(s=>`<option>${s}</option>`).join(''));
+let sortK='waitDays',sortDir=-1;
+const sc=s=>({'Awaiting reply':'Awaiting','With partner':'With','Replied elsewhere':'Elsewhere'}[s]||s);
+const esc=s=>(''+(s??'')).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+function render(){
+  let R=rows();
+  const q=document.getElementById('search').value.toLowerCase();
+  const fv=document.getElementById('fvendor').value, fs=document.getElementById('fstatus').value, fb=document.getElementById('fball').value;
+  R=R.filter(l=>{const hay=(l.name+' '+(l.phone||'')+' '+l.project+' '+(l.vendor||'')+' '+(l.notes||'')).toLowerCase();
+    if(q&&!hay.includes(q))return false; if(fv&&l.vendor!==fv)return false; if(fs&&l.status!==fs)return false; if(fb&&l.ball!==fb)return false; return true;});
+  R.sort((a,b)=>{let x=a[sortK],y=b[sortK]; if(x==null)x=-Infinity; if(y==null)y=-Infinity;
+    return x<y?-sortDir:x>y?sortDir:(''+a.name).localeCompare(b.name);});
+  paintKpis(rows());
+  const mobile = window.matchMedia('(max-width:719px)').matches;
+  document.getElementById('rows').innerHTML=R.map(l=>{
+    const wait=`${l.waitDays==null?'—':l.waitDays+'d'}${l.overdue?' ⚠':''}`;
+    const contact = l.phone
+      ? `<a href="https://wa.me/${(l.phone||'').replace(/[^0-9]/g,'')}" target="_blank" rel="noopener">${esc(l.phone)}</a>`
+      : (l.link?`<a href="${esc(l.link)}" target="_blank" rel="noopener">open link</a>`:'');
+    if(mobile) return `<tr class="${l.overdue?'overdue-row':''}">
+      <td class="rowhead"><span class="name">${esc(l.name)}</span><span class="${l.overdue?'due':'kw'}">${wait} <span class="kw">${l.waitLabel}</span></span></td>
+      <td class="kw">${esc(l.project||'')}${l.enquiryType?' · '+esc(l.enquiryType):''}</td>
+      <td>${contact?'<span class="kw">'+contact+'</span>':''}</td>
+      <td class="pillrow"><span class="pill s-${sc(l.status)}">${l.status}</span>
+        <span class="pill b-${l.ball}">${l.ball==='you'?'Your move':l.ball==='them'?'Waiting on them':'With partner'}</span>
+        <span class="pill ${vcls(l.vendor)}">${esc(l.vendor||'—')}</span></td>
+      <td class="kw">${l.lastAct} · <select class="assign" data-id="${esc(l.id)}">
+          <option value="me"${l.assignedTo==='me'?' selected':''}>Me</option>
+          <option value="partner"${l.assignedTo==='partner'?' selected':''}>Partner${l.partnerName?' ('+esc(l.partnerName)+')':''}</option>
+        </select></td>
+      ${l.notes?`<td class="msg">${esc(l.notes)}</td>`:''}</tr>`;
+    return `<tr class="${l.overdue?'overdue-row':''}">
+    <td><div class="name">${esc(l.name)}</div><div class="kw">${contact}</div></td>
+    <td>${esc(l.project||'')}<div class="kw">${esc(l.enquiryType||'')}</div></td>
+    <td><span class="pill ${vcls(l.vendor)}">${esc(l.vendor||'—')}</span></td>
+    <td><select class="assign" data-id="${esc(l.id)}">
+        <option value="me"${l.assignedTo==='me'?' selected':''}>Me</option>
+        <option value="partner"${l.assignedTo==='partner'?' selected':''}>Partner${l.partnerName?' ('+esc(l.partnerName)+')':''}</option>
+      </select></td>
+    <td><span class="pill s-${sc(l.status)}">${l.status}</span></td>
+    <td><span class="pill b-${l.ball}">${l.ball==='you'?'You':l.ball==='them'?'Them':'Partner'}</span></td>
+    <td class="${l.overdue?'due':''}">${wait}<div class="kw">${l.waitLabel}</div></td>
+    <td class="kw">${l.lastAct}</td>
+    <td class="msg">${esc(l.notes||'')}</td></tr>`;}).join('')
+    ||`<tr><td colspan="9" class="kw">No leads match.</td></tr>`;
+  document.querySelectorAll('select.assign').forEach(s=>s.onchange=()=>{
+    ASSIGN[s.dataset.id]=s.value; localStorage.setItem('ctb_assign',JSON.stringify(ASSIGN)); render();});
+  document.getElementById('foot').textContent=R.length+' of '+DATA.leads.length+' leads · updated by the daily WhatsApp scan · assignment changes save on this device only.';
+}
+document.querySelectorAll('th').forEach(th=>th.onclick=()=>{const c=th.dataset.k;
+  if(['assign','lastAct','notes'].includes(c))return;
+  if(c===sortK)sortDir*=-1;else{sortK=c;sortDir=-1;}render();});
+['search','fvendor','fstatus','fball'].forEach(id=>document.getElementById(id).oninput=render);
+let rz; window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(render,150);});
+render();
+}
+</script></body></html>
