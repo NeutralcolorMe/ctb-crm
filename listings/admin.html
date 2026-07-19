@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>CTB Listings — Agent Console</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Baloo+2:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{--canvas:#F2F4F8;--card:#FFF;--navy:#1F2BA6;--blue:#00A0E6;--pink:#F2148C;--yellow:#FFD400;--ink:#12142B;--muted:#5D6472;--hair:rgba(18,20,43,.08);}
+  *{box-sizing:border-box;margin:0}
+  body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--canvas);color:var(--ink);padding:18px 16px 60px;max-width:560px;margin:0 auto}
+  .logo{font-family:'Baloo 2',sans-serif;font-weight:700;font-size:22px;color:var(--navy)}
+  .logo b{color:var(--blue);font-weight:700}
+  .tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:2px 0 18px}
+  .card{background:var(--card);border-radius:20px;padding:16px;box-shadow:0 3px 14px rgba(18,20,43,.06);margin-bottom:14px}
+  .lbl{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  input,select{width:100%;padding:11px 13px;border:1.5px solid var(--hair);border-radius:12px;font:inherit;font-size:14px;background:#FAFBFD}
+  input:focus,select:focus{outline:none;border-color:var(--blue)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px 16px;border:none;border-radius:9999px;font:inherit;font-size:14px;font-weight:800;cursor:pointer;margin-top:10px}
+  .btn-pink{background:var(--pink);color:#FFF}
+  .btn-navy{background:var(--navy);color:#FFF}
+  .btn-ghost{background:transparent;border:1.5px solid var(--hair);color:var(--ink)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .note{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:8px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#FFF;font-size:12.5px;font-weight:700;padding:10px 18px;border-radius:9999px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
+  .toast.on{opacity:1}
+  .li{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--hair)}
+  .li:last-child{border-bottom:none}
+  .li img{width:74px;height:56px;object-fit:cover;border-radius:10px;flex:none;background:#E7EAF1}
+  .li-t{font-size:13.5px;font-weight:800;line-height:1.3}
+  .li-m{font-size:11.5px;color:var(--muted);margin:2px 0 8px}
+  .li-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .li-row select{width:auto;padding:6px 10px;font-size:12px;border-radius:9999px}
+  .li-row input{width:104px;padding:6px 10px;font-size:12px;border-radius:9999px}
+  .chip{font-size:10px;font-weight:800;padding:3px 9px;border-radius:9999px}
+  .chip.available{background:rgba(45,125,111,.12);color:#2D7D6F}
+  .chip.under-offer{background:rgba(232,147,12,.14);color:#B26F00}
+  .chip.sold{background:rgba(18,20,43,.1);color:var(--muted)}
+  .mini{font-size:11px;font-weight:800;color:var(--pink);background:none;border:none;cursor:pointer;padding:4px 6px}
+  .feat{font-size:11px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:4px}
+  #busy{display:none;font-size:12px;font-weight:700;color:var(--blue);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="logo">ctb<b>realty</b></div>
+<div class="tag">Listings agent console</div>
+
+<div class="card" id="tokenCard">
+  <div class="lbl">One-time setup on this device</div>
+  <input id="tok" type="password" placeholder="GitHub token (fine-grained, this repo, contents: write)">
+  <button class="btn btn-navy" onclick="saveTok()">Save on this device</button>
+  <p class="note">The token stays in this browser only. It's the same one used for CRM publishing.</p>
+</div>
+
+<div class="card">
+  <div class="lbl">Add a listing from PropertyGuru</div>
+  <input id="pgurl" type="url" placeholder="Paste the PropertyGuru listing link">
+  <button class="btn btn-pink" id="addBtn" onclick="addListing()">Add to ctbrealty.sg</button>
+  <div id="busy">Cloud agent is fetching the listing — photos and details land in ~1–2 minutes. Pull to refresh.</div>
+  <p class="note">Create the listing on PropertyGuru first, as usual. Paste the link here — the cloud agent copies everything across: details, description, photos, floor plan, virtual tour.</p>
+</div>
+
+<div class="card">
+  <div class="lbl">Your listings <button class="mini" style="float:right" onclick="loadListings(true)">↻ refresh</button></div>
+  <div id="list">Loading…</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const OWNER="NeutralcolorMe", REPO="ctb-crm", BR="main";
+const API=`https://api.github.com/repos/${OWNER}/${REPO}/contents/`;
+const PAGES=`https://neutralcolorme.github.io/ctb-crm/`;
+let sha=null, db=null;
+
+const $=id=>document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),3200)}
+function tok(){return localStorage.getItem("ctb_gh_token")||""}
+function saveTok(){const v=$("tok").value.trim();if(!v)return toast("Paste the token first");localStorage.setItem("ctb_gh_token",v);$("tokenCard").style.display="none";toast("Saved on this device");loadListings(true)}
+function hdrs(){return {Authorization:"Bearer "+tok(),Accept:"application/vnd.github+json"}}
+function b64(s){return btoa(unescape(encodeURIComponent(s)))}
+
+async function gh(path,opts){const r=await fetch(API+path,{...opts,headers:{...hdrs(),...(opts&&opts.headers||{})}});if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.status);return r.json()}
+
+async function addListing(){
+  if(!tok())return toast("Set up the token first");
+  const u=$("pgurl").value.trim();
+  if(!/propertyguru\.com\.sg\/listing\//.test(u))return toast("That doesn't look like a PropertyGuru listing link");
+  $("addBtn").disabled=true;
+  try{
+    await gh(`listings/queue/add-${Date.now()}.json`,{method:"PUT",body:JSON.stringify({message:"[admin] queue add listing",branch:BR,content:b64(JSON.stringify({action:"add",url:u}))})});
+    $("pgurl").value="";$("busy").style.display="block";toast("Sent to the cloud agent");
+    setTimeout(()=>loadListings(true),75000);
+  }catch(e){toast("Failed: "+e.message)}
+  $("addBtn").disabled=false;
+}
+
+async function loadListings(fresh){
+  try{
+    const j=await gh(`listings/listings.json?ref=${BR}${fresh?"&t="+Date.now():""}`,{});
+    sha=j.sha; db=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,"")))));
+    render();
+  }catch(e){$("list").innerHTML='<p class="note">'+(tok()?("Couldn't load: "+e.message):"Set up the token above to manage listings.")+'</p>'}
+}
+
+function render(){
+  const L=db.listings||[];
+  if(!L.length){$("list").innerHTML='<p class="note">No listings yet. Add your first one above.</p>';return}
+  $("list").innerHTML=L.map((l,i)=>`
+    <div class="li">
+      <img src="${l.photos&&l.photos[0]?PAGES+l.photos[0]:(l.photoUrls&&l.photoUrls[0]||"")}" alt="">
+      <div style="flex:1">
+        <div class="li-t">${l.title||l.id} <span class="chip ${l.status}">${(l.status||"").replace("-"," ")}</span></div>
+        <div class="li-m">${l.beds||"?"}BR · ${l.sqft||"?"} sqft · D${l.district||"?"} · ${(l.photos||[]).length} photos${l.featured?" · ★ featured":""}</div>
+        <div class="li-row">
+          <select onchange="stage(${i},this.value)">
+            ${["available","under-offer","sold"].map(s=>`<option ${l.status===s?"selected":""} value="${s}">${s.replace("-"," ")}</option>`).join("")}
+          </select>
+          <input type="text" value="${l.price?l.price.toLocaleString():""}" onchange="price(${i},this.value)" aria-label="price">
+          <label class="feat"><input type="checkbox" style="width:auto" ${l.featured?"checked":""} onchange="feat(${i},this.checked)">featured</label>
+          <button class="mini" onclick="removeL(${i})">remove</button>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+async function commitDb(msg){
+  const body={message:"[admin] "+msg,branch:BR,content:b64(JSON.stringify(db,null,2)+"\n"),sha};
+  const j=await gh("listings/listings.json",{method:"PUT",body:JSON.stringify(body)});
+  sha=j.content.sha; toast("Updated — live in ~1 min");
+}
+function stage(i,v){db.listings[i].status=v;commitDb("status "+db.listings[i].id+" → "+v).catch(e=>toast("Failed: "+e.message))}
+function price(i,v){const n=parseInt(v.replace(/[^0-9]/g,""),10);if(!n)return;db.listings[i].price=n;commitDb("price "+db.listings[i].id+" → "+n).catch(e=>toast("Failed: "+e.message))}
+function feat(i,v){db.listings[i].featured=v;commitDb("featured "+db.listings[i].id+" → "+v).catch(e=>toast("Failed: "+e.message))}
+function removeL(i){if(!confirm("Remove this listing from ctbrealty.sg? (PropertyGuru is untouched)"))return;db.listings.splice(i,1);commitDb("remove listing").catch(e=>toast("Failed: "+e.message))}
+
+if(tok()){$("tokenCard").style.display="none"}
+loadListings(true);
+</script>
+</body>
+</html>
