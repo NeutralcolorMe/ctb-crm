@@ -1,0 +1,59 @@
+name: Instagram sync
+
+on:
+  schedule:
+    - cron: '17 1 * * *'   # daily 09:17 SGT
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instagram-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Sync feed from Instagram API
+        run: node scripts/instagram_sync.mjs
+
+      - name: Commit & push if the feed changed
+        run: |
+          git add instagram/
+          if git diff --cached --quiet; then
+            echo "Feed unchanged."
+          else
+            git config user.name "instagram-sync[bot]"
+            git config user.email "actions@github.com"
+            git commit -m "Instagram feed sync"
+            git push
+          fi
+
+      # Long-lived IG tokens expire after 60 days; refresh on every run.
+      # Persisting the refreshed token needs a PAT with secrets:write —
+      # add it as GH_PAT, otherwise this step just warns near expiry.
+      - name: Refresh access token
+        if: env.IG_ACCESS_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          resp=$(curl -s "https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${IG_ACCESS_TOKEN}")
+          new_token=$(echo "$resp" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{console.log(JSON.parse(d).access_token||'')}catch{console.log('')}})")
+          if [ -z "$new_token" ]; then
+            echo "::warning::Token refresh failed: $resp"
+          elif [ -n "$GH_TOKEN" ]; then
+            echo "$new_token" | gh secret set IG_ACCESS_TOKEN --repo "$GITHUB_REPOSITORY"
+            echo "Token refreshed and secret updated."
+          else
+            echo "::warning::Token refreshed but GH_PAT is not set, so the secret was NOT updated. Set GH_PAT (repo secrets:write) or manually rotate IG_ACCESS_TOKEN before it expires (60 days)."
+          fi
